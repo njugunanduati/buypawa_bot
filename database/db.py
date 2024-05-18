@@ -1,16 +1,21 @@
-import mysql.connector as mysql
+import psycopg2
+import environ
 
+
+# read variables for .env file
+ENV = environ.Env()
+environ.Env.read_env(".env")
 
 class DB:
 
     def __init__(self):
-        self.host = 'localhost'
-        self.user = 'root'
-        self.password = 'jamonjuguna'
-        self.database = 'buy_pawa'
+        self.host = ENV.str("DB_HOST", "")
+        self.user = ENV.str("DB_USER", "")
+        self.password = ENV.str("DB_PASSWORD", "")
+        self.database = ENV.str("DB_NAME", "")
 
     def connect(self):
-        db = mysql.connect(
+        db = psycopg2.connect(
             host=self.host,
             user=self.user,
             passwd=self.password,
@@ -42,10 +47,6 @@ class Customer:
         cursor.execute(stmt, data)
         record = cursor.fetchone()
         return record
-
-
-# Customer().add_customer(['jamonjuguna', 'James', 'Njuguna', '254729556997'])
-# Customer().get_customer(['jamonjuguna', 'James', 'Njuguna'])
 
 
 class Meter:

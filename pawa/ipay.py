@@ -5,22 +5,27 @@ from datetime import datetime, timedelta, timezone
 import pytz
 import time
 import random
+import environ
 import socket
 from lxml import etree
 from .wrap import wrap, un_wrap
 
 
+# read variables for .env file
+ENV = environ.Env()
+environ.Env.read_env(".env")
+
 class Ipay:
 
     def __init__(self, meter, amount):
-        self.ip = '41.204.194.188'
-        self.port = 8902
+        self.ip = ENV.str("IPAY_IP", "")
+        self.port = ENV.str("IPAY_PORT", "")
         self.meter = meter
-        self.client = 'PESATRANS'
+        self.client = ENV.str("IPAY_CLIENT", "")
         self.amount = int(amount) * 100
         self.ref = random.randint(100000000000, 999999999999)
         self.today = datetime.now(pytz.timezone('Africa/Nairobi')).strftime("%Y-%m-%d %H:%M:%S %z")
-        self.buffer_size = 2048
+        self.buffer_size = ENV.str("BUFFER_SIZE", "")
 
     def create(self):
         try:

@@ -1,17 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # This program is dedicated to the public domain under the CC0 license.
-
+import asyncio
+import environ
 import logging
-
 from telegram import ReplyKeyboardMarkup
-from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters,
+from telegram.ext import (Updater, CommandHandler, MessageHandler, filters,
                           ConversationHandler)
 from paybill.payment import Payment
 from pawa.ipay import Ipay
 from database.db import Customer, Meter
 
-TOKEN = '947711107:AAHaJceUcYB8b4LgvJIBHCJ-FvmeILnL0yI'
+# read variables for .env file
+ENV = environ.Env()
+environ.Env.read_env(".env")
+
+TOKEN = ENV.str("TOKEN", "")
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -159,14 +163,13 @@ def received_information(update, context):
         customer = Customer().get_customer(data)
         print("user_data", user_data)
         message = 'Check your phone to complete the m-pesa payment. Select Done to get token:'
-        pay = Payment().online_payment(customer[4])
+        pay = Payment().online_payment(customer[4], amount)
         print("payment", pay)
         update.message.reply_text(message, reply_markup=markup_main)
         return CHOOSING
 
 
 def done(update, context):
-    print("am here ")
     user_data = context.user_data
     if 'choice' in user_data:
         del user_data['choice']
@@ -196,11 +199,11 @@ def error(update, context):
     logger.warning('Update "%s" caused error "%s"', update, context.error)
 
 
-def main():
+async def main():
     # Create the Updater and pass it your bot's token.
     # Make sure to set use_context=True to use the new context based callbacks
     # Post version 12 this will no longer be necessary
-    updater = Updater(TOKEN, use_context=True)
+    updater = Updater(TOKEN)
 
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
@@ -210,23 +213,23 @@ def main():
         entry_points=[CommandHandler('start', start)],
 
         states={
-            CHOOSING: [MessageHandler(Filters.regex('^(Add Meter|Add Phone No.|Add Meter'
+            CHOOSING: [MessageHandler(filters.regex('^(Add Meter|Add Phone No.|Add Meter'
                                                     '|Enter Amount|Select Meter|Done)$'),
                                       regular_choice),
                        # MessageHandler(Filters.regex('^(Select Meter)$'),
                        #                custom_choice)
                        ],
 
-            TYPING_CHOICE: [MessageHandler(Filters.text,
+            TYPING_CHOICE: [MessageHandler(filters.text,
                                            regular_choice)
                             ],
 
-            TYPING_REPLY: [MessageHandler(Filters.text,
+            TYPING_REPLY: [MessageHandler(filters.text,
                                           received_information),
                            ],
         },
 
-        fallbacks=[MessageHandler(Filters.regex('^Done$'), done)]
+        fallbacks=[MessageHandler(filters.regex('^Done$'), done)]
     )
 
     dp.add_handler(conv_handler)
@@ -244,4 +247,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
